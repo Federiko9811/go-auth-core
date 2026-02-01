@@ -1,0 +1,54 @@
+# ----------------------------------------------------------------------
+# 🏗️ Binari e Compilazione
+# Ignoriamo i file eseguibili generati da 'go build'.
+# ----------------------------------------------------------------------
+/main
+/cmd/api/main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# File di test compilati
+*.test
+*.out
+
+# ----------------------------------------------------------------------
+# 🔐 Segreti e Configurazione Locale
+# CRITICO: Mai committare il file .env che contiene password reali!
+# ----------------------------------------------------------------------
+.env
+.env.local
+
+# ----------------------------------------------------------------------
+# 💻 IDE e Editor
+# File di configurazione personale di GoLand (JetBrains) e VS Code
+# che non devono essere condivisi con altri sviluppatori.
+# ----------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ----------------------------------------------------------------------
+# 📦 Dipendenze (Vendor)
+# Se decidi di scaricare le librerie localmente nella cartella vendor/
+# di solito non si committano (si usa go.mod per riscaricarle).
+# ----------------------------------------------------------------------
+vendor/
+
+# ----------------------------------------------------------------------
+# 🍏 Sistema Operativo (Mac/Linux/Windows)
+# File spazzatura generati dai sistemi operativi
+# ----------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# ----------------------------------------------------------------------
+# 🐳 Docker (Opzionale)
+# Ignoriamo log o dati se per sbaglio vengono montati nella root
+# ----------------------------------------------------------------------
+docker-compose.override.yml
+*.log

@@ -1,0 +1,467 @@
+basePath: /
+definitions:
+  api.EmailRequest:
+    description: Request body with user email
+    properties:
+      email:
+        description: |-
+          User's email address
+          required: true
+          example: user@example.com
+        example: user@example.com
+        type: string
+    required:
+    - email
+    type: object
+  api.ErrorResponse:
+    description: Error details
+    properties:
+      code:
+        description: Optional error code (e.g., TOKEN_EXPIRED)
+        example: TOKEN_EXPIRED
+        type: string
+      error:
+        description: |-
+          Error message
+          example: Invalid request format
+        example: Invalid request format
+        type: string
+    type: object
+  api.HealthDetailedResponse:
+    properties:
+      services:
+        additionalProperties:
+          $ref: '#/definitions/api.ServiceStatus'
+        type: object
+      status:
+        example: healthy
+        type: string
+      timestamp:
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  api.LoginSuccessResponse:
+    description: Response after successful authentication
+    properties:
+      message:
+        description: "Success message\nexample: Login successful! \U0001F510"
+        example: "Login successful! \U0001F510"
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/api.UserInfo'
+        description: User information
+    type: object
+  api.MessageResponse:
+    description: Generic response message
+    properties:
+      message:
+        description: |-
+          Response message
+          example: Operation successful
+        example: Operation successful
+        type: string
+    type: object
+  api.PasskeyResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        example: 1
+        type: integer
+      last_used:
+        type: string
+      name:
+        example: MacBook Pro
+        type: string
+    type: object
+  api.RenamePasskeyRequest:
+    properties:
+      name:
+        example: iPhone 15 Pro
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  api.ServiceStatus:
+    properties:
+      error:
+        example: ""
+        type: string
+      latency:
+        example: 1.23ms
+        type: string
+      status:
+        example: healthy
+        type: string
+    type: object
+  api.UserInfo:
+    description: Authenticated user details
+    properties:
+      email:
+        description: |-
+          User email
+          example: user@example.com
+        example: user@example.com
+        type: string
+      id:
+        description: |-
+          Unique user ID
+          example: 1
+        example: 1
+        type: integer
+    type: object
+  api.UserResponse:
+    description: Response containing user info
+    properties:
+      user:
+        allOf:
+        - $ref: '#/definitions/api.UserInfo'
+        description: Authenticated user info
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: API per autenticazione WebAuthn/Passkey con JWT HttpOnly cookies
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Go Auth Core API
+  version: "1.0"
+paths:
+  /api/me:
+    get:
+      description: Restituisce le informazioni dell'utente autenticato. Richiede un
+        cookie access_token valido.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informazioni utente
+          schema:
+            $ref: '#/definitions/api.UserResponse'
+        "401":
+          description: Non autenticato o token scaduto
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      tags:
+      - user
+  /api/passkeys:
+    get:
+      description: Restituisce tutte le passkeys registrate dall'utente
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.PasskeyResponse'
+            type: array
+        "401":
+          description: Non autenticato
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Lista passkeys utente
+      tags:
+      - passkeys
+  /api/passkeys/{id}:
+    delete:
+      description: Elimina una passkey. L'utente può eliminare solo le proprie passkey
+        e deve mantenere almeno una passkey attiva.
+      parameters:
+      - description: ID della passkey
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+        "400":
+          description: Impossibile eliminare l'ultima passkey
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Non autenticato
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Non autorizzato a eliminare questa passkey
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Passkey non trovata
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Elimina passkey
+      tags:
+      - passkeys
+    patch:
+      consumes:
+      - application/json
+      description: Aggiorna il nome di una passkey. L'utente può rinominare solo le
+        proprie passkey.
+      parameters:
+      - description: ID della passkey
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Nuovo nome
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.RenamePasskeyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+        "400":
+          description: Dati non validi
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Non autenticato
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Non autorizzato a modificare questa passkey
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Passkey non trovata
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Rinomina passkey
+      tags:
+      - passkeys
+  /auth/login/begin:
+    post:
+      consumes:
+      - application/json
+      description: Initiates the WebAuthn authentication flow. Returns options to
+        be passed to navigator.credentials.get() in the browser.
+      parameters:
+      - description: User Email
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.EmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: PublicKeyCredentialRequestOptions for WebAuthn
+          schema:
+            type: object
+        "400":
+          description: Invalid email
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Start Passkey Login
+      tags:
+      - auth
+  /auth/login/finish:
+    post:
+      consumes:
+      - application/json
+      description: 'Completes the WebAuthn authentication flow. If login is successful,
+        sets two HttpOnly cookies: access_token (15 min) and refresh_token (7 days).'
+      parameters:
+      - description: User Email
+        example: user@example.com
+        in: query
+        name: email
+        required: true
+        type: string
+      - description: WebAuthn response from navigator.credentials.get()
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login completed, JWT cookies set
+          headers:
+            Set-Cookie:
+              description: refresh_token=<JWT>; Path=/auth; HttpOnly; SameSite=Lax
+              type: string
+          schema:
+            $ref: '#/definitions/api.LoginSuccessResponse'
+        "400":
+          description: Missing email
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Authentication failed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Token generation error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Complete Passkey Login
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Clears authentication cookies (access_token and refresh_token).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout completed
+          headers:
+            Set-Cookie:
+              description: refresh_token=; Path=/auth; Max-Age=0; HttpOnly
+              type: string
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+      summary: User Logout
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      description: Uses the refresh token to obtain a new access token. The refresh
+        token is rotated for security.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token renewed
+          headers:
+            Set-Cookie:
+              description: refresh_token=<JWT>; Path=/auth; HttpOnly; SameSite=Lax
+              type: string
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+        "401":
+          description: Missing, invalid, or expired refresh token
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Renew Access Token
+      tags:
+      - auth
+  /auth/register/begin:
+    post:
+      consumes:
+      - application/json
+      description: Initiates the WebAuthn registration flow. Returns options to be
+        passed to navigator.credentials.create() in the browser.
+      parameters:
+      - description: User Email
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.EmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: PublicKeyCredentialCreationOptions for WebAuthn
+          schema:
+            type: object
+        "400":
+          description: Invalid or missing email
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Start Passkey Registration
+      tags:
+      - auth
+  /auth/register/finish:
+    post:
+      consumes:
+      - application/json
+      description: Completes the WebAuthn registration flow. The body must contain
+        the raw response from navigator.credentials.create().
+      parameters:
+      - description: User Email
+        example: user@example.com
+        in: query
+        name: email
+        required: true
+        type: string
+      - description: WebAuthn response from navigator.credentials.create()
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Registration completed
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+        "400":
+          description: Missing email
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Registration failed
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Complete Passkey Registration
+      tags:
+      - auth
+  /health:
+    get:
+      description: Verifica lo stato del servizio, database e Redis
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tutti i servizi funzionano
+          schema:
+            $ref: '#/definitions/api.HealthDetailedResponse'
+        "503":
+          description: Uno o più servizi non funzionano
+          schema:
+            $ref: '#/definitions/api.HealthDetailedResponse'
+      summary: Health check dettagliato
+      tags:
+      - health
+securityDefinitions:
+  CookieAuth:
+    description: JWT token in HttpOnly cookie (set automatically on login)
+    in: cookie
+    name: access_token
+    type: apiKey
+swagger: "2.0"
