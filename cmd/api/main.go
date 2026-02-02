@@ -33,6 +33,7 @@ import (
 	"go-auth-core/internal/repository"
 	"go-auth-core/internal/service"
 	"go-auth-core/pkg/database"
+	"go-auth-core/pkg/email"
 	"go-auth-core/pkg/logger"
 	"go-auth-core/pkg/redis"
 
@@ -77,7 +78,8 @@ func main() {
 	redisRepo := repository.NewRedisRepository(rdb)
 
 	// 6. Initialize Services
-	authService, err := service.NewAuthService(userRepo, passkeyRepo, redisRepo, cfg)
+	emailSender := email.NewGomailSender(cfg) // Create Email Sender
+	authService, err := service.NewAuthService(userRepo, passkeyRepo, redisRepo, emailSender, cfg)
 	if err != nil {
 		logger.Fatal("Failed to initialize AuthService", err)
 	}
@@ -132,6 +134,7 @@ func main() {
 	auth := r.Group("/auth")
 	{
 		auth.POST("/register/begin", authHandler.RegisterBegin)
+		auth.POST("/register/verify-otp", authHandler.RegisterVerifyOTP) // New endpoint
 		auth.POST("/register/finish", authHandler.RegisterFinish)
 		auth.POST("/login/begin", authHandler.LoginBegin)
 		auth.POST("/login/finish", authHandler.LoginFinish)

@@ -14,15 +14,15 @@ run:
 
 ## up: Avvia solo l'infrastruttura (DB e Redis) in background
 up:
-	docker compose up -d db redis
+	docker compose -f docker-compose.dev.yml up -d db redis
 
 ## down: Spegne e rimuove i container
 down:
-	docker compose down
+	docker compose -f docker-compose.dev.yml down
 
 ## logs: Guarda i log dei container (DB e Redis)
 logs:
-	docker compose logs -f
+	docker compose -f docker-compose.dev.yml logs -f
 
 # ==============================================================================
 # 🏗️ Build & Clean

@@ -50,14 +50,58 @@ func (h *AuthHandler) RegisterBegin(c *gin.Context) {
 		return
 	}
 
-	options, err := h.authService.RegisterBegin(c.Request.Context(), req.Email)
+	options, requiresOTP, err := h.authService.RegisterBegin(c.Request.Context(), req.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	if requiresOTP {
+		// New response format needed here? Or just use a specific field?
+		// For now simple JSON:
+		c.JSON(http.StatusOK, gin.H{
+			"requires_otp": true,
+			"message":      "User already exists. OTP sent to email.",
+		})
+		return
+	}
+
 	// Return options.Response directly to avoid the {"publicKey": {...}} wrapper
-	c.JSON(http.StatusOK, options.Response)
+	c.JSON(http.StatusOK, gin.H{
+		"requires_otp": false,
+		"options":      options.Response,
+	})
+}
+
+// RegisterVerifyOTP godoc
+// @Summary      Verify OTP and Continue Registration
+// @Description  Verifies the OTP sent to email and returns registration options.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body object true "Email and OTP"
+// @Success      200 {object} object "PublicKeyCredentialCreationOptions"
+// @Router       /auth/register/verify-otp [post]
+func (h *AuthHandler) RegisterVerifyOTP(c *gin.Context) {
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+		OTP   string `json:"otp" binding:"required,len=6"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	options, err := h.authService.VerifyOTP(c.Request.Context(), req.Email, req.OTP)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"options": options.Response,
+	})
 }
 
 // RegisterFinish godoc
@@ -196,7 +240,7 @@ func (h *AuthHandler) LoginFinish(c *gin.Context) {
 		"refresh_token",
 		refreshToken,
 		h.cfg.RefreshTokenExpireDays*24*60*60, // days -> seconds
-		"/auth",                               // Only for auth endpoints
+		"/auth", // Only for auth endpoints
 		"",
 		secure,
 		true, // HttpOnly

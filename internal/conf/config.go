@@ -26,15 +26,22 @@ type Config struct {
 	RedisAddr     string
 	RedisPassword string
 
+	// Email Config
+	MailHost     string
+	MailPort     int
+	MailUser     string
+	MailPassword string
+	MailFrom     string
+
 	// WebAuthn Config
 	RPDisplayName string
 	RPID          string
 	RPOrigins     []string
 
 	// Token Config
-	JWTSecret                 string
-	AccessTokenExpireMinutes  int
-	RefreshTokenExpireDays    int
+	JWTSecret                string
+	AccessTokenExpireMinutes int
+	RefreshTokenExpireDays   int
 
 	// Rate Limiting
 	RateLimitRequests      int
@@ -68,6 +75,12 @@ func LoadConfig() *Config {
 
 		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
+
+		MailHost:     getEnv("MAIL_SERVER", "smtp.gmail.com"),
+		MailPort:     getEnvInt("MAIL_PORT", 587),
+		MailUser:     getEnv("MAIL_USERNAME", ""),
+		MailPassword: getEnv("MAIL_PASSWORD", ""),
+		MailFrom:     getEnv("MAIL_FROM", "noreply@example.com"),
 
 		RPDisplayName: getEnv("RP_DISPLAY_NAME", "Go Auth Core"),
 		RPID:          getEnv("RP_ID", "localhost"),

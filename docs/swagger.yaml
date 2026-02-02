@@ -128,7 +128,7 @@ info:
   contact:
     email: support@example.com
     name: API Support
-  description: API per autenticazione WebAuthn/Passkey con JWT HttpOnly cookies
+  description: WebAuthn/Passkey Authentication API with HttpOnly JWT cookies
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -156,7 +156,7 @@ paths:
       - user
   /api/passkeys:
     get:
-      description: Restituisce tutte le passkeys registrate dall'utente
+      description: Returns all passkeys registered by the authenticated user.
       produces:
       - application/json
       responses:
@@ -167,20 +167,20 @@ paths:
               $ref: '#/definitions/api.PasskeyResponse'
             type: array
         "401":
-          description: Non autenticato
+          description: Not authenticated
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - CookieAuth: []
-      summary: Lista passkeys utente
+      summary: List User Passkeys
       tags:
       - passkeys
   /api/passkeys/{id}:
     delete:
-      description: Elimina una passkey. L'utente può eliminare solo le proprie passkey
-        e deve mantenere almeno una passkey attiva.
+      description: Deletes a passkey. Users can only delete their own passkeys and
+        must keep at least one active.
       parameters:
-      - description: ID della passkey
+      - description: Passkey ID
         in: path
         name: id
         required: true
@@ -193,38 +193,38 @@ paths:
           schema:
             $ref: '#/definitions/api.MessageResponse'
         "400":
-          description: Impossibile eliminare l'ultima passkey
+          description: Cannot delete last passkey
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Non autenticato
+          description: Not authenticated
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "403":
-          description: Non autorizzato a eliminare questa passkey
+          description: Not authorized to delete this passkey
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "404":
-          description: Passkey non trovata
+          description: Passkey not found
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - CookieAuth: []
-      summary: Elimina passkey
+      summary: Delete Passkey
       tags:
       - passkeys
     patch:
       consumes:
       - application/json
-      description: Aggiorna il nome di una passkey. L'utente può rinominare solo le
-        proprie passkey.
+      description: Updates the name of a passkey. Users can only rename their own
+        passkeys.
       parameters:
-      - description: ID della passkey
+      - description: Passkey ID
         in: path
         name: id
         required: true
         type: integer
-      - description: Nuovo nome
+      - description: New Name
         in: body
         name: request
         required: true
@@ -238,24 +238,24 @@ paths:
           schema:
             $ref: '#/definitions/api.MessageResponse'
         "400":
-          description: Dati non validi
+          description: Invalid data
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Non autenticato
+          description: Not authenticated
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "403":
-          description: Non autorizzato a modificare questa passkey
+          description: Not authorized to modify this passkey
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "404":
-          description: Passkey non trovata
+          description: Passkey not found
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - CookieAuth: []
-      summary: Rinomina passkey
+      summary: Rename Passkey
       tags:
       - passkeys
   /auth/login/begin:
@@ -441,21 +441,43 @@ paths:
       summary: Complete Passkey Registration
       tags:
       - auth
-  /health:
-    get:
-      description: Verifica lo stato del servizio, database e Redis
+  /auth/register/verify-otp:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the OTP sent to email and returns registration options.
+      parameters:
+      - description: Email and OTP
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
       produces:
       - application/json
       responses:
         "200":
-          description: Tutti i servizi funzionano
+          description: PublicKeyCredentialCreationOptions
+          schema:
+            type: object
+      summary: Verify OTP and Continue Registration
+      tags:
+      - auth
+  /health:
+    get:
+      description: Checks the status of the service, database, and Redis.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: All services are healthy
           schema:
             $ref: '#/definitions/api.HealthDetailedResponse'
         "503":
-          description: Uno o più servizi non funzionano
+          description: One or more services are unhealthy
           schema:
             $ref: '#/definitions/api.HealthDetailedResponse'
-      summary: Health check dettagliato
+      summary: Detailed Health Check
       tags:
       - health
 securityDefinitions:

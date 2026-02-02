@@ -59,14 +59,14 @@ const docTemplate = `{
                         "CookieAuth": []
                     }
                 ],
-                "description": "Restituisce tutte le passkeys registrate dall'utente",
+                "description": "Returns all passkeys registered by the authenticated user.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "passkeys"
                 ],
-                "summary": "Lista passkeys utente",
+                "summary": "List User Passkeys",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -78,7 +78,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Non autenticato",
+                        "description": "Not authenticated",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -93,18 +93,18 @@ const docTemplate = `{
                         "CookieAuth": []
                     }
                 ],
-                "description": "Elimina una passkey. L'utente può eliminare solo le proprie passkey e deve mantenere almeno una passkey attiva.",
+                "description": "Deletes a passkey. Users can only delete their own passkeys and must keep at least one active.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "passkeys"
                 ],
-                "summary": "Elimina passkey",
+                "summary": "Delete Passkey",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID della passkey",
+                        "description": "Passkey ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -118,25 +118,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Impossibile eliminare l'ultima passkey",
+                        "description": "Cannot delete last passkey",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Non autenticato",
+                        "description": "Not authenticated",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "403": {
-                        "description": "Non autorizzato a eliminare questa passkey",
+                        "description": "Not authorized to delete this passkey",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Passkey non trovata",
+                        "description": "Passkey not found",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -149,7 +149,7 @@ const docTemplate = `{
                         "CookieAuth": []
                     }
                 ],
-                "description": "Aggiorna il nome di una passkey. L'utente può rinominare solo le proprie passkey.",
+                "description": "Updates the name of a passkey. Users can only rename their own passkeys.",
                 "consumes": [
                     "application/json"
                 ],
@@ -159,17 +159,17 @@ const docTemplate = `{
                 "tags": [
                     "passkeys"
                 ],
-                "summary": "Rinomina passkey",
+                "summary": "Rename Passkey",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "ID della passkey",
+                        "description": "Passkey ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Nuovo nome",
+                        "description": "New Name",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -186,25 +186,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Dati non validi",
+                        "description": "Invalid data",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Non autenticato",
+                        "description": "Not authenticated",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "403": {
-                        "description": "Non autorizzato a modificare questa passkey",
+                        "description": "Not authorized to modify this passkey",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Passkey non trovata",
+                        "description": "Passkey not found",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -482,25 +482,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/register/verify-otp": {
+            "post": {
+                "description": "Verifies the OTP sent to email and returns registration options.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Verify OTP and Continue Registration",
+                "parameters": [
+                    {
+                        "description": "Email and OTP",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PublicKeyCredentialCreationOptions",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
-                "description": "Verifica lo stato del servizio, database e Redis",
+                "description": "Checks the status of the service, database, and Redis.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "health"
                 ],
-                "summary": "Health check dettagliato",
+                "summary": "Detailed Health Check",
                 "responses": {
                     "200": {
-                        "description": "Tutti i servizi funzionano",
+                        "description": "All services are healthy",
                         "schema": {
                             "$ref": "#/definitions/api.HealthDetailedResponse"
                         }
                     },
                     "503": {
-                        "description": "Uno o più servizi non funzionano",
+                        "description": "One or more services are unhealthy",
                         "schema": {
                             "$ref": "#/definitions/api.HealthDetailedResponse"
                         }
@@ -690,7 +724,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Go Auth Core API",
-	Description:      "API per autenticazione WebAuthn/Passkey con JWT HttpOnly cookies",
+	Description:      "WebAuthn/Passkey Authentication API with HttpOnly JWT cookies",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
