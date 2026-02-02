@@ -40,13 +40,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Informazioni utente",
                         "schema": {
-                            "$ref": "#/definitions/api.UserResponse"
+                            "$ref": "#/definitions/dtos.UserResponse"
                         }
                     },
                     "401": {
                         "description": "Non autenticato o token scaduto",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -73,14 +73,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.PasskeyResponse"
+                                "$ref": "#/definitions/handlers.PasskeyResponse"
                             }
                         }
                     },
                     "401": {
                         "description": "Not authenticated",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -114,31 +114,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.MessageResponse"
+                            "$ref": "#/definitions/dtos.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Cannot delete last passkey",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Not authenticated",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Not authorized to delete this passkey",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Passkey not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -174,7 +174,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.RenamePasskeyRequest"
+                            "$ref": "#/definitions/handlers.RenamePasskeyRequest"
                         }
                     }
                 ],
@@ -182,31 +182,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.MessageResponse"
+                            "$ref": "#/definitions/dtos.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid data",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Not authenticated",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Not authorized to modify this passkey",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Passkey not found",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -232,7 +232,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.EmailRequest"
+                            "$ref": "#/definitions/dtos.EmailRequest"
                         }
                     }
                 ],
@@ -246,13 +246,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid email",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid credentials",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -294,7 +294,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Login completed, JWT cookies set",
                         "schema": {
-                            "$ref": "#/definitions/api.LoginSuccessResponse"
+                            "$ref": "#/definitions/dtos.LoginSuccessResponse"
                         },
                         "headers": {
                             "Set-Cookie": {
@@ -306,19 +306,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Missing email",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Authentication failed",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Token generation error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -338,7 +338,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Logout completed",
                         "schema": {
-                            "$ref": "#/definitions/api.MessageResponse"
+                            "$ref": "#/definitions/dtos.MessageResponse"
                         },
                         "headers": {
                             "Set-Cookie": {
@@ -364,7 +364,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Token renewed",
                         "schema": {
-                            "$ref": "#/definitions/api.MessageResponse"
+                            "$ref": "#/definitions/dtos.MessageResponse"
                         },
                         "headers": {
                             "Set-Cookie": {
@@ -376,7 +376,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Missing, invalid, or expired refresh token",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -402,7 +402,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.EmailRequest"
+                            "$ref": "#/definitions/dtos.EmailRequest"
                         }
                     }
                 ],
@@ -416,13 +416,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid or missing email",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -464,19 +464,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Registration completed",
                         "schema": {
-                            "$ref": "#/definitions/api.MessageResponse"
+                            "$ref": "#/definitions/dtos.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Missing email",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Registration failed",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -530,13 +530,13 @@ const docTemplate = `{
                     "200": {
                         "description": "All services are healthy",
                         "schema": {
-                            "$ref": "#/definitions/api.HealthDetailedResponse"
+                            "$ref": "#/definitions/handlers.HealthDetailedResponse"
                         }
                     },
                     "503": {
                         "description": "One or more services are unhealthy",
                         "schema": {
-                            "$ref": "#/definitions/api.HealthDetailedResponse"
+                            "$ref": "#/definitions/handlers.HealthDetailedResponse"
                         }
                     }
                 }
@@ -544,7 +544,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.EmailRequest": {
+        "dtos.EmailRequest": {
             "description": "Request body with user email",
             "type": "object",
             "required": [
@@ -558,7 +558,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.ErrorResponse": {
+        "dtos.ErrorResponse": {
             "description": "Error details",
             "type": "object",
             "properties": {
@@ -574,13 +574,73 @@ const docTemplate = `{
                 }
             }
         },
-        "api.HealthDetailedResponse": {
+        "dtos.LoginSuccessResponse": {
+            "description": "Response after successful authentication",
+            "type": "object",
+            "properties": {
+                "message": {
+                    "description": "Success message\nexample: Login successful! 🔐",
+                    "type": "string",
+                    "example": "Login successful! 🔐"
+                },
+                "user": {
+                    "description": "User information",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dtos.UserInfo"
+                        }
+                    ]
+                }
+            }
+        },
+        "dtos.MessageResponse": {
+            "description": "Generic response message",
+            "type": "object",
+            "properties": {
+                "message": {
+                    "description": "Response message\nexample: Operation successful",
+                    "type": "string",
+                    "example": "Operation successful"
+                }
+            }
+        },
+        "dtos.UserInfo": {
+            "description": "Authenticated user details",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "description": "User email\nexample: user@example.com",
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "id": {
+                    "description": "Unique user ID\nexample: 1",
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "dtos.UserResponse": {
+            "description": "Response containing user info",
+            "type": "object",
+            "properties": {
+                "user": {
+                    "description": "Authenticated user info",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dtos.UserInfo"
+                        }
+                    ]
+                }
+            }
+        },
+        "handlers.HealthDetailedResponse": {
             "type": "object",
             "properties": {
                 "services": {
                     "type": "object",
                     "additionalProperties": {
-                        "$ref": "#/definitions/api.ServiceStatus"
+                        "$ref": "#/definitions/handlers.ServiceStatus"
                     }
                 },
                 "status": {
@@ -596,37 +656,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.LoginSuccessResponse": {
-            "description": "Response after successful authentication",
-            "type": "object",
-            "properties": {
-                "message": {
-                    "description": "Success message\nexample: Login successful! 🔐",
-                    "type": "string",
-                    "example": "Login successful! 🔐"
-                },
-                "user": {
-                    "description": "User information",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/api.UserInfo"
-                        }
-                    ]
-                }
-            }
-        },
-        "api.MessageResponse": {
-            "description": "Generic response message",
-            "type": "object",
-            "properties": {
-                "message": {
-                    "description": "Response message\nexample: Operation successful",
-                    "type": "string",
-                    "example": "Operation successful"
-                }
-            }
-        },
-        "api.PasskeyResponse": {
+        "handlers.PasskeyResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -645,7 +675,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.RenamePasskeyRequest": {
+        "handlers.RenamePasskeyRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -659,7 +689,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.ServiceStatus": {
+        "handlers.ServiceStatus": {
             "type": "object",
             "properties": {
                 "error": {
@@ -673,36 +703,6 @@ const docTemplate = `{
                 "status": {
                     "type": "string",
                     "example": "healthy"
-                }
-            }
-        },
-        "api.UserInfo": {
-            "description": "Authenticated user details",
-            "type": "object",
-            "properties": {
-                "email": {
-                    "description": "User email\nexample: user@example.com",
-                    "type": "string",
-                    "example": "user@example.com"
-                },
-                "id": {
-                    "description": "Unique user ID\nexample: 1",
-                    "type": "integer",
-                    "example": 1
-                }
-            }
-        },
-        "api.UserResponse": {
-            "description": "Response containing user info",
-            "type": "object",
-            "properties": {
-                "user": {
-                    "description": "Authenticated user info",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/api.UserInfo"
-                        }
-                    ]
                 }
             }
         }

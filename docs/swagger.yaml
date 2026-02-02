@@ -1,6 +1,6 @@
 basePath: /
 definitions:
-  api.EmailRequest:
+  dtos.EmailRequest:
     description: Request body with user email
     properties:
       email:
@@ -13,7 +13,7 @@ definitions:
     required:
     - email
     type: object
-  api.ErrorResponse:
+  dtos.ErrorResponse:
     description: Error details
     properties:
       code:
@@ -27,22 +27,7 @@ definitions:
         example: Invalid request format
         type: string
     type: object
-  api.HealthDetailedResponse:
-    properties:
-      services:
-        additionalProperties:
-          $ref: '#/definitions/api.ServiceStatus'
-        type: object
-      status:
-        example: healthy
-        type: string
-      timestamp:
-        type: string
-      version:
-        example: 1.0.0
-        type: string
-    type: object
-  api.LoginSuccessResponse:
+  dtos.LoginSuccessResponse:
     description: Response after successful authentication
     properties:
       message:
@@ -51,10 +36,10 @@ definitions:
         type: string
       user:
         allOf:
-        - $ref: '#/definitions/api.UserInfo'
+        - $ref: '#/definitions/dtos.UserInfo'
         description: User information
     type: object
-  api.MessageResponse:
+  dtos.MessageResponse:
     description: Generic response message
     properties:
       message:
@@ -64,42 +49,7 @@ definitions:
         example: Operation successful
         type: string
     type: object
-  api.PasskeyResponse:
-    properties:
-      created_at:
-        type: string
-      id:
-        example: 1
-        type: integer
-      last_used:
-        type: string
-      name:
-        example: MacBook Pro
-        type: string
-    type: object
-  api.RenamePasskeyRequest:
-    properties:
-      name:
-        example: iPhone 15 Pro
-        maxLength: 100
-        minLength: 1
-        type: string
-    required:
-    - name
-    type: object
-  api.ServiceStatus:
-    properties:
-      error:
-        example: ""
-        type: string
-      latency:
-        example: 1.23ms
-        type: string
-      status:
-        example: healthy
-        type: string
-    type: object
-  api.UserInfo:
+  dtos.UserInfo:
     description: Authenticated user details
     properties:
       email:
@@ -115,13 +65,63 @@ definitions:
         example: 1
         type: integer
     type: object
-  api.UserResponse:
+  dtos.UserResponse:
     description: Response containing user info
     properties:
       user:
         allOf:
-        - $ref: '#/definitions/api.UserInfo'
+        - $ref: '#/definitions/dtos.UserInfo'
         description: Authenticated user info
+    type: object
+  handlers.HealthDetailedResponse:
+    properties:
+      services:
+        additionalProperties:
+          $ref: '#/definitions/handlers.ServiceStatus'
+        type: object
+      status:
+        example: healthy
+        type: string
+      timestamp:
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  handlers.PasskeyResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        example: 1
+        type: integer
+      last_used:
+        type: string
+      name:
+        example: MacBook Pro
+        type: string
+    type: object
+  handlers.RenamePasskeyRequest:
+    properties:
+      name:
+        example: iPhone 15 Pro
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  handlers.ServiceStatus:
+    properties:
+      error:
+        example: ""
+        type: string
+      latency:
+        example: 1.23ms
+        type: string
+      status:
+        example: healthy
+        type: string
     type: object
 host: localhost:8080
 info:
@@ -145,11 +145,11 @@ paths:
         "200":
           description: Informazioni utente
           schema:
-            $ref: '#/definitions/api.UserResponse'
+            $ref: '#/definitions/dtos.UserResponse'
         "401":
           description: Non autenticato o token scaduto
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - CookieAuth: []
       tags:
@@ -164,12 +164,12 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/api.PasskeyResponse'
+              $ref: '#/definitions/handlers.PasskeyResponse'
             type: array
         "401":
           description: Not authenticated
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - CookieAuth: []
       summary: List User Passkeys
@@ -191,23 +191,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.MessageResponse'
+            $ref: '#/definitions/dtos.MessageResponse'
         "400":
           description: Cannot delete last passkey
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "401":
           description: Not authenticated
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "403":
           description: Not authorized to delete this passkey
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "404":
           description: Passkey not found
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - CookieAuth: []
       summary: Delete Passkey
@@ -229,30 +229,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api.RenamePasskeyRequest'
+          $ref: '#/definitions/handlers.RenamePasskeyRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.MessageResponse'
+            $ref: '#/definitions/dtos.MessageResponse'
         "400":
           description: Invalid data
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "401":
           description: Not authenticated
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "403":
           description: Not authorized to modify this passkey
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "404":
           description: Passkey not found
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - CookieAuth: []
       summary: Rename Passkey
@@ -270,7 +270,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api.EmailRequest'
+          $ref: '#/definitions/dtos.EmailRequest'
       produces:
       - application/json
       responses:
@@ -281,11 +281,11 @@ paths:
         "400":
           description: Invalid email
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "401":
           description: Invalid credentials
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       summary: Start Passkey Login
       tags:
       - auth
@@ -318,19 +318,19 @@ paths:
               description: refresh_token=<JWT>; Path=/auth; HttpOnly; SameSite=Lax
               type: string
           schema:
-            $ref: '#/definitions/api.LoginSuccessResponse'
+            $ref: '#/definitions/dtos.LoginSuccessResponse'
         "400":
           description: Missing email
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "401":
           description: Authentication failed
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Token generation error
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       summary: Complete Passkey Login
       tags:
       - auth
@@ -347,7 +347,7 @@ paths:
               description: refresh_token=; Path=/auth; Max-Age=0; HttpOnly
               type: string
           schema:
-            $ref: '#/definitions/api.MessageResponse'
+            $ref: '#/definitions/dtos.MessageResponse'
       summary: User Logout
       tags:
       - auth
@@ -365,11 +365,11 @@ paths:
               description: refresh_token=<JWT>; Path=/auth; HttpOnly; SameSite=Lax
               type: string
           schema:
-            $ref: '#/definitions/api.MessageResponse'
+            $ref: '#/definitions/dtos.MessageResponse'
         "401":
           description: Missing, invalid, or expired refresh token
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       summary: Renew Access Token
       tags:
       - auth
@@ -385,7 +385,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api.EmailRequest'
+          $ref: '#/definitions/dtos.EmailRequest'
       produces:
       - application/json
       responses:
@@ -396,11 +396,11 @@ paths:
         "400":
           description: Invalid or missing email
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       summary: Start Passkey Registration
       tags:
       - auth
@@ -429,15 +429,15 @@ paths:
         "200":
           description: Registration completed
           schema:
-            $ref: '#/definitions/api.MessageResponse'
+            $ref: '#/definitions/dtos.MessageResponse'
         "400":
           description: Missing email
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "401":
           description: Registration failed
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       summary: Complete Passkey Registration
       tags:
       - auth
@@ -472,11 +472,11 @@ paths:
         "200":
           description: All services are healthy
           schema:
-            $ref: '#/definitions/api.HealthDetailedResponse'
+            $ref: '#/definitions/handlers.HealthDetailedResponse'
         "503":
           description: One or more services are unhealthy
           schema:
-            $ref: '#/definitions/api.HealthDetailedResponse'
+            $ref: '#/definitions/handlers.HealthDetailedResponse'
       summary: Detailed Health Check
       tags:
       - health

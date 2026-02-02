@@ -1,6 +1,7 @@
-package api
+package handlers
 
 import (
+	"go-auth-core/internal/api"
 	"go-auth-core/internal/repository"
 	"net/http"
 	"strconv"
@@ -41,10 +42,10 @@ type RenamePasskeyRequest struct {
 // @Security     CookieAuth
 // @Produce      json
 // @Success      200 {array} PasskeyResponse
-// @Failure      401 {object} ErrorResponse "Not authenticated"
+// @Failure      401 {object} dtos.ErrorResponse "Not authenticated"
 // @Router       /api/passkeys [get]
 func (h *PasskeyHandler) List(c *gin.Context) {
-	claims := GetUserClaims(c)
+	claims := api.GetUserClaims(c)
 	if claims == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
 		return
@@ -79,14 +80,14 @@ func (h *PasskeyHandler) List(c *gin.Context) {
 // @Produce      json
 // @Param        id path int true "Passkey ID"
 // @Param        request body RenamePasskeyRequest true "New Name"
-// @Success      200 {object} MessageResponse
-// @Failure      400 {object} ErrorResponse "Invalid data"
-// @Failure      401 {object} ErrorResponse "Not authenticated"
-// @Failure      403 {object} ErrorResponse "Not authorized to modify this passkey"
-// @Failure      404 {object} ErrorResponse "Passkey not found"
+// @Success      200 {object} dtos.MessageResponse
+// @Failure      400 {object} dtos.ErrorResponse "Invalid data"
+// @Failure      401 {object} dtos.ErrorResponse "Not authenticated"
+// @Failure      403 {object} dtos.ErrorResponse "Not authorized to modify this passkey"
+// @Failure      404 {object} dtos.ErrorResponse "Passkey not found"
 // @Router       /api/passkeys/{id} [patch]
 func (h *PasskeyHandler) Rename(c *gin.Context) {
-	claims := GetUserClaims(c)
+	claims := api.GetUserClaims(c)
 	if claims == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
 		return
@@ -135,14 +136,14 @@ func (h *PasskeyHandler) Rename(c *gin.Context) {
 // @Security     CookieAuth
 // @Produce      json
 // @Param        id path int true "Passkey ID"
-// @Success      200 {object} MessageResponse
-// @Failure      400 {object} ErrorResponse "Cannot delete last passkey"
-// @Failure      401 {object} ErrorResponse "Not authenticated"
-// @Failure      403 {object} ErrorResponse "Not authorized to delete this passkey"
-// @Failure      404 {object} ErrorResponse "Passkey not found"
+// @Success      200 {object} dtos.MessageResponse
+// @Failure      400 {object} dtos.ErrorResponse "Cannot delete last passkey"
+// @Failure      401 {object} dtos.ErrorResponse "Not authenticated"
+// @Failure      403 {object} dtos.ErrorResponse "Not authorized to delete this passkey"
+// @Failure      404 {object} dtos.ErrorResponse "Passkey not found"
 // @Router       /api/passkeys/{id} [delete]
 func (h *PasskeyHandler) Delete(c *gin.Context) {
-	claims := GetUserClaims(c)
+	claims := api.GetUserClaims(c)
 	if claims == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
 		return

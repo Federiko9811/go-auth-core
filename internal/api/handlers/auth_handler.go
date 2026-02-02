@@ -1,6 +1,7 @@
-package api
+package handlers
 
 import (
+	"go-auth-core/internal/api"
 	"go-auth-core/internal/conf"
 	"go-auth-core/internal/repository"
 	"go-auth-core/internal/service"
@@ -35,10 +36,10 @@ func NewAuthHandler(authService *service.AuthService, userRepo *repository.UserR
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        request body EmailRequest true "User Email"
+// @Param        request body dtos.EmailRequest true "User Email"
 // @Success      200 {object} object "PublicKeyCredentialCreationOptions for WebAuthn"
-// @Failure      400 {object} ErrorResponse "Invalid or missing email"
-// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Failure      400 {object} dtos.ErrorResponse "Invalid or missing email"
+// @Failure      500 {object} dtos.ErrorResponse "Internal server error"
 // @Router       /auth/register/begin [post]
 func (h *AuthHandler) RegisterBegin(c *gin.Context) {
 	var req struct {
@@ -112,9 +113,9 @@ func (h *AuthHandler) RegisterVerifyOTP(c *gin.Context) {
 // @Produce      json
 // @Param        email query string true "User Email" example(user@example.com)
 // @Param        request body object true "WebAuthn response from navigator.credentials.create()"
-// @Success      200 {object} MessageResponse "Registration completed"
-// @Failure      400 {object} ErrorResponse "Missing email"
-// @Failure      401 {object} ErrorResponse "Registration failed"
+// @Success      200 {object} dtos.MessageResponse "Registration completed"
+// @Failure      400 {object} dtos.ErrorResponse "Missing email"
+// @Failure      401 {object} dtos.ErrorResponse "Registration failed"
 // @Router       /auth/register/finish [post]
 func (h *AuthHandler) RegisterFinish(c *gin.Context) {
 	email := c.Query("email")
@@ -140,10 +141,10 @@ func (h *AuthHandler) RegisterFinish(c *gin.Context) {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        request body EmailRequest true "User Email"
+// @Param        request body dtos.EmailRequest true "User Email"
 // @Success      200 {object} object "PublicKeyCredentialRequestOptions for WebAuthn"
-// @Failure      400 {object} ErrorResponse "Invalid email"
-// @Failure      401 {object} ErrorResponse "Invalid credentials"
+// @Failure      400 {object} dtos.ErrorResponse "Invalid email"
+// @Failure      401 {object} dtos.ErrorResponse "Invalid credentials"
 // @Router       /auth/login/begin [post]
 func (h *AuthHandler) LoginBegin(c *gin.Context) {
 	var req struct {
@@ -174,10 +175,10 @@ func (h *AuthHandler) LoginBegin(c *gin.Context) {
 // @Produce      json
 // @Param        email query string true "User Email" example(user@example.com)
 // @Param        request body object true "WebAuthn response from navigator.credentials.get()"
-// @Success      200 {object} LoginSuccessResponse "Login completed, JWT cookies set"
-// @Failure      400 {object} ErrorResponse "Missing email"
-// @Failure      401 {object} ErrorResponse "Authentication failed"
-// @Failure      500 {object} ErrorResponse "Token generation error"
+// @Success      200 {object} dtos.LoginSuccessResponse "Login completed, JWT cookies set"
+// @Failure      400 {object} dtos.ErrorResponse "Missing email"
+// @Failure      401 {object} dtos.ErrorResponse "Authentication failed"
+// @Failure      500 {object} dtos.ErrorResponse "Token generation error"
 // @Header       200 {string} Set-Cookie "access_token=<JWT>; Path=/; HttpOnly; SameSite=Lax"
 // @Header       200 {string} Set-Cookie "refresh_token=<JWT>; Path=/auth; HttpOnly; SameSite=Lax"
 // @Router       /auth/login/finish [post]
@@ -262,8 +263,8 @@ func (h *AuthHandler) LoginFinish(c *gin.Context) {
 // @Description  Uses the refresh token to obtain a new access token. The refresh token is rotated for security.
 // @Tags         auth
 // @Produce      json
-// @Success      200 {object} MessageResponse "Token renewed"
-// @Failure      401 {object} ErrorResponse "Missing, invalid, or expired refresh token"
+// @Success      200 {object} dtos.MessageResponse "Token renewed"
+// @Failure      401 {object} dtos.ErrorResponse "Missing, invalid, or expired refresh token"
 // @Header       200 {string} Set-Cookie "access_token=<JWT>; Path=/; HttpOnly; SameSite=Lax"
 // @Header       200 {string} Set-Cookie "refresh_token=<JWT>; Path=/auth; HttpOnly; SameSite=Lax"
 // @Router       /auth/refresh [post]
@@ -351,7 +352,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Description  Clears authentication cookies (access_token and refresh_token).
 // @Tags         auth
 // @Produce      json
-// @Success      200 {object} MessageResponse "Logout completed"
+// @Success      200 {object} dtos.MessageResponse "Logout completed"
 // @Header       200 {string} Set-Cookie "access_token=; Path=/; Max-Age=0; HttpOnly"
 // @Header       200 {string} Set-Cookie "refresh_token=; Path=/auth; Max-Age=0; HttpOnly"
 // @Router       /auth/logout [post]
@@ -375,11 +376,11 @@ func (h *AuthHandler) clearAuthCookies(c *gin.Context) {
 // @Tags         user
 // @Security     CookieAuth
 // @Produce      json
-// @Success      200 {object} UserResponse "Informazioni utente"
-// @Failure      401 {object} ErrorResponse "Non autenticato o token scaduto"
+// @Success      200 {object} dtos.UserResponse "Informazioni utente"
+// @Failure      401 {object} dtos.ErrorResponse "Non autenticato o token scaduto"
 // @Router       /api/me [get]
 func (h *AuthHandler) Me(c *gin.Context) {
-	claims := GetUserClaims(c)
+	claims := api.GetUserClaims(c)
 	if claims == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
 		return

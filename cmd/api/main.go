@@ -22,6 +22,8 @@
 package main
 
 import (
+	"go-auth-core/internal/api/handlers"
+
 	"github.com/gin-gonic/gin"
 	redis2 "github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
@@ -86,9 +88,9 @@ func main() {
 	logger.Info("✅ Services initialized")
 
 	// 7. Initialize Handlers
-	authHandler := api.NewAuthHandler(authService, userRepo, cfg)
-	passkeyHandler := api.NewPasskeyHandler(passkeyRepo)
-	healthHandler := api.NewHealthHandler(db, rdb)
+	authHandler := handlers.NewAuthHandler(authService, userRepo, cfg)
+	passkeyHandler := handlers.NewPasskeyHandler(passkeyRepo)
+	healthHandler := handlers.NewHealthHandler(db, rdb)
 
 	// 8. Router Setup
 	if cfg.Env == "production" {
