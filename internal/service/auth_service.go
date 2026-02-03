@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -14,6 +16,7 @@ import (
 	"go-auth-core/internal/domain"
 	"go-auth-core/internal/repository"
 	"go-auth-core/pkg/email"
+	"go-auth-core/pkg/logger"
 )
 
 // AuthService manages authentication logic regarding WebAuthn and Passkeys.
@@ -83,8 +86,7 @@ func (s *AuthService) RegisterBegin(ctx context.Context, email string) (*protoco
 		// Send Email
 		go func() {
 			if err := s.emailSender.SendOTP(email, otp); err != nil {
-				// Log error (should have a logger injected, but using fmt for now or ignore)
-				fmt.Printf("failed to send otp email: %v\n", err)
+				logger.Error("failed to send otp email", err)
 			}
 		}()
 
@@ -162,19 +164,15 @@ func (s *AuthService) generateRegistrationOptions(ctx context.Context, user *dom
 	return options, nil
 }
 
-// generateOTP creates a random 6-digit string
+// generateOTP creates a random 6-digit string using crypto/rand
 func (s *AuthService) generateOTP() string {
-	// Simple random number for demo/template purposes
-	// In production, use crypto/rand
-	// Using simple math/rand here for brevity, assuming seeded elsewhere or sufficient for template
-	// Ideally:
-	// n, _ := rand.Int(rand.Reader, big.NewInt(900000))
-	// return fmt.Sprintf("%06d", n.Int64() + 100000)
-
-	// For now, let's use a simple implementation with time (note: weak randomness but functional for logic flow check instructions)
-	// BETTER:
-	// ...
-	return fmt.Sprintf("%06d", time.Now().UnixNano()%1000000)
+	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		// Fallback to time-based if crypto fails (highly unlikely)
+		// but safer to return something than crash or return empty
+		return fmt.Sprintf("%06d", time.Now().UnixNano()%1000000)
+	}
+	return fmt.Sprintf("%06d", n.Int64())
 }
 
 // RegisterFinish completes the registration flow.
