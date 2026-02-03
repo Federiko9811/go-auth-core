@@ -62,7 +62,7 @@ func LoadConfig() *Config {
 		log.Println("⚠️  Warning: .env file not found, using system environment variables")
 	}
 
-	return &Config{
+	cfg := &Config{
 		AppPort: getEnv("APP_PORT", "8080"),
 		Env:     getEnv("ENV", "development"),
 
@@ -98,6 +98,21 @@ func LoadConfig() *Config {
 		LogLevel:  getEnv("LOG_LEVEL", "debug"),
 		LogFormat: getEnv("LOG_FORMAT", "console"),
 	}
+
+	// Critical Config Validation for Production
+	if cfg.Env == "production" {
+		if cfg.JWTSecret == "change-me-in-production" {
+			log.Fatal("❌ FATAL: JWT_SECRET must be set to a secure value in production!")
+		}
+		if cfg.DBPassword == "" {
+			log.Fatal("❌ FATAL: DB_PASSWORD must be set in production!")
+		}
+		if cfg.RedisPassword == "" {
+			log.Fatal("❌ FATAL: REDIS_PASSWORD must be set in production!")
+		}
+	}
+
+	return cfg
 }
 
 // getEnv reads an environment variable or uses a default value.

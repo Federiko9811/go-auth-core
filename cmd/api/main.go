@@ -22,6 +22,13 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"go-auth-core/internal/api/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -157,23 +164,48 @@ func main() {
 		protected.DELETE("/passkeys/:id", passkeyHandler.Delete)
 	}
 
-	// 9. Start Server
-	logger.Info("🚀 Server starting on http://localhost:" + cfg.AppPort)
-	logger.Info("📍 Endpoints:")
-	logger.Info("   POST /auth/register/begin  - Start passkey registration")
-	logger.Info("   POST /auth/register/finish - Complete registration")
-	logger.Info("   POST /auth/login/begin     - Start passkey login")
-	logger.Info("   POST /auth/login/finish    - Complete login (sets cookies)")
-	logger.Info("   POST /auth/refresh         - Refresh access token")
-	logger.Info("   POST /auth/logout          - Clear auth cookies")
-	logger.Info("   GET  /api/me               - Get current user (protected)")
-	logger.Info("   GET  /api/passkeys         - List passkeys (protected)")
-	logger.Info("   PATCH /api/passkeys/:id    - Rename passkey (protected)")
-	logger.Info("   DELETE /api/passkeys/:id   - Delete passkey (protected)")
-	logger.Info("   GET  /health               - Detailed health check")
-	logger.Info("   GET  /swagger/index.html   - API Documentation 📚")
-
-	if err := r.Run(":" + cfg.AppPort); err != nil {
-		logger.Fatal("Server failed to start", err)
+	// 9. Start Server with Graceful Shutdown
+	srv := &http.Server{
+		Addr:    ":" + cfg.AppPort,
+		Handler: r,
 	}
+
+	// Start server in a goroutine so it doesn't block
+	go func() {
+		logger.Info("🚀 Server starting on http://localhost:" + cfg.AppPort)
+		logger.Info("📍 Endpoints:")
+		logger.Info("   POST /auth/register/begin  - Start passkey registration")
+		logger.Info("   POST /auth/register/finish - Complete registration")
+		logger.Info("   POST /auth/login/begin     - Start passkey login")
+		logger.Info("   POST /auth/login/finish    - Complete login (sets cookies)")
+		logger.Info("   POST /auth/refresh         - Refresh access token")
+		logger.Info("   POST /auth/logout          - Clear auth cookies")
+		logger.Info("   GET  /api/me               - Get current user (protected)")
+		logger.Info("   GET  /api/passkeys         - List passkeys (protected)")
+		logger.Info("   PATCH /api/passkeys/:id    - Rename passkey (protected)")
+		logger.Info("   DELETE /api/passkeys/:id   - Delete passkey (protected)")
+		logger.Info("   GET  /health               - Detailed health check")
+		logger.Info("   GET  /swagger/index.html   - API Documentation 📚")
+
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Server failed to start", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	logger.Info("Shutting down server...")
+
+	// The context is used to inform the server it has 5 seconds to finish
+	// the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Fatal("Server forced to shutdown", err)
+	}
+
+	logger.Info("Server exited")
 }
