@@ -8,11 +8,15 @@ import (
 	"go-auth-core/pkg/jwt"
 	"go-auth-core/pkg/logger"
 	"net/http"
+	"strings"
+
 	"regexp"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 // AuthHandler handles HTTP requests related to authentication.
 type AuthHandler struct {
@@ -33,8 +37,6 @@ func NewAuthHandler(authService *service.AuthService, userRepo *repository.UserR
 }
 
 // --- REGISTRATION ---
-
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 // RegisterBegin godoc
 // @Summary      Start Passkey Registration
@@ -131,13 +133,8 @@ func (h *AuthHandler) RegisterVerifyOTP(c *gin.Context) {
 // @Router       /auth/register/finish [post]
 func (h *AuthHandler) RegisterFinish(c *gin.Context) {
 	email := c.Query("email")
-	if email == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email query parameter is required"})
-		return
-	}
-
-	if !emailRegex.MatchString(email) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
+	if email == "" || !emailRegex.MatchString(email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Valid email query parameter is required"})
 		return
 	}
 
@@ -173,6 +170,11 @@ func (h *AuthHandler) LoginBegin(c *gin.Context) {
 		return
 	}
 
+	if !emailRegex.MatchString(req.Email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
+		return
+	}
+
 	options, err := h.authService.LoginBegin(c.Request.Context(), req.Email)
 	if err != nil {
 		// Do not reveal if the user exists or not (security best practice)
@@ -201,13 +203,8 @@ func (h *AuthHandler) LoginBegin(c *gin.Context) {
 // @Router       /auth/login/finish [post]
 func (h *AuthHandler) LoginFinish(c *gin.Context) {
 	email := c.Query("email")
-	if email == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email query parameter is required"})
-		return
-	}
-
-	if !emailRegex.MatchString(email) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
+	if email == "" || !emailRegex.MatchString(email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Valid email query parameter is required"})
 		return
 	}
 
@@ -253,7 +250,7 @@ func (h *AuthHandler) LoginFinish(c *gin.Context) {
 		accessToken,
 		h.cfg.AccessTokenExpireMinutes*60, // minutes -> seconds
 		"/",
-		"",
+		h.cfg.CookieDomain, // Shared domain
 		secure,
 		true, // HttpOnly
 	)
@@ -263,8 +260,8 @@ func (h *AuthHandler) LoginFinish(c *gin.Context) {
 		"refresh_token",
 		refreshToken,
 		h.cfg.RefreshTokenExpireDays*24*60*60, // days -> seconds
-		"/auth", // Only for auth endpoints
-		"",
+		"/auth",            // Only for auth endpoints
+		h.cfg.CookieDomain, // Shared domain
 		secure,
 		true, // HttpOnly
 	)
@@ -298,20 +295,21 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Check Blacklist
-	blacklistKey := "blacklist:" + refreshTokenStr
-	if _, err := h.redisRepo.Get(c.Request.Context(), blacklistKey); err == nil {
-		h.clearAuthCookies(c)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token revoked"})
-		return
-	}
-
 	// Validate the refresh token
 	claims, err := jwt.ValidateRefreshToken(refreshTokenStr, h.cfg.JWTSecret)
 	if err != nil {
 		// Clear cookies if the token is invalid
 		h.clearAuthCookies(c)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired refresh token"})
+		return
+	}
+
+	// Check Blacklist
+	blacklistKey := "blacklist:" + refreshTokenStr
+	if _, err := h.redisRepo.Get(c.Request.Context(), blacklistKey); err == nil {
+		// Key exists in blacklist
+		h.clearAuthCookies(c)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token revoked"})
 		return
 	}
 
@@ -357,7 +355,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		accessToken,
 		h.cfg.AccessTokenExpireMinutes*60,
 		"/",
-		"",
+		h.cfg.CookieDomain,
 		secure,
 		true,
 	)
@@ -367,7 +365,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		newRefreshToken,
 		h.cfg.RefreshTokenExpireDays*24*60*60,
 		"/auth",
-		"",
+		h.cfg.CookieDomain,
 		secure,
 		true,
 	)
@@ -387,15 +385,18 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Header       200 {string} Set-Cookie "refresh_token=; Path=/auth; Max-Age=0; HttpOnly"
 // @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// Blacklist logic
-	refreshToken, _ := c.Cookie("refresh_token")
-	if refreshToken != "" {
-		claims, err := jwt.ValidateRefreshToken(refreshToken, h.cfg.JWTSecret)
+	// Blacklist the refresh token if present
+	refreshTokenStr, err := c.Cookie("refresh_token")
+	if err == nil && refreshTokenStr != "" {
+		// We decode the token to find expiration, to set the blacklist TTL efficiently
+		claims, err := jwt.ValidateRefreshToken(refreshTokenStr, h.cfg.JWTSecret)
 		if err == nil {
-			// Blacklist until expiration
-			ttl := time.Until(claims.ExpiresAt.Time)
+			// Calculate remaining time
+			expirationTime := claims.ExpiresAt.Time
+			ttl := time.Until(expirationTime)
 			if ttl > 0 {
-				_ = h.redisRepo.Set(c.Request.Context(), "blacklist:"+refreshToken, "1", ttl)
+				// Add to blacklist
+				_ = h.redisRepo.Set(c.Request.Context(), "blacklist:"+refreshTokenStr, "revoked", ttl)
 			}
 		}
 	}
@@ -408,8 +409,25 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 func (h *AuthHandler) clearAuthCookies(c *gin.Context) {
 	secure := h.cfg.Env != "development"
 
-	c.SetCookie("access_token", "", -1, "/", "", secure, true)
-	c.SetCookie("refresh_token", "", -1, "/auth", "", secure, true)
+	// Common options for deletion
+	c.SetSameSite(http.SameSiteLaxMode)
+
+	// 1. Clear with configured domain
+	c.SetCookie("access_token", "", -1, "/", h.cfg.CookieDomain, secure, true)
+	c.SetCookie("refresh_token", "", -1, "/auth", h.cfg.CookieDomain, secure, true)
+
+	// 2. Clear with empty domain (handles HostOnly cookies or domain mismatches)
+	if h.cfg.CookieDomain != "" {
+		c.SetCookie("access_token", "", -1, "/", "", secure, true)
+		c.SetCookie("refresh_token", "", -1, "/auth", "", secure, true)
+	}
+
+	// 3. Clear with dot-prefixed domain if not already present (some browsers/configs behave differently)
+	if h.cfg.CookieDomain != "" && !strings.HasPrefix(h.cfg.CookieDomain, ".") {
+		dotDomain := "." + h.cfg.CookieDomain
+		c.SetCookie("access_token", "", -1, "/", dotDomain, secure, true)
+		c.SetCookie("refresh_token", "", -1, "/auth", dotDomain, secure, true)
+	}
 }
 
 // --- PROTECTED ROUTES ---

@@ -4,8 +4,28 @@ services:
     build: .
     container_name: app_api
     restart: always
-    env_file:
-      - .env
+    environment:
+      - APP_PORT=${APP_PORT:-8080}
+      - ENV=${ENV:-production}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - RP_ID=${RP_ID}
+      - RP_DISPLAY_NAME=${RP_DISPLAY_NAME:-Go Auth Core}
+      - RP_ORIGINS=${RP_ORIGINS}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN}
     ports:
       - "${APP_PORT:-8080}:8080"
     depends_on:

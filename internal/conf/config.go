@@ -42,6 +42,7 @@ type Config struct {
 	JWTSecret                string
 	AccessTokenExpireMinutes int
 	RefreshTokenExpireDays   int
+	CookieDomain             string
 
 	// Rate Limiting
 	RateLimitRequests      int
@@ -89,6 +90,7 @@ func LoadConfig() *Config {
 		JWTSecret:                getEnv("JWT_SECRET", "change-me-in-production"),
 		AccessTokenExpireMinutes: getEnvInt("ACCESS_TOKEN_EXPIRE_MINUTES", 15),
 		RefreshTokenExpireDays:   getEnvInt("REFRESH_TOKEN_EXPIRE_DAYS", 7),
+		CookieDomain:             getEnv("COOKIE_DOMAIN", "localhost"),
 
 		RateLimitRequests:      getEnvInt("RATE_LIMIT_REQUESTS", 100),
 		RateLimitWindowSeconds: getEnvInt("RATE_LIMIT_WINDOW_SECONDS", 60),

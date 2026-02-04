@@ -2,7 +2,7 @@
 # STAGE 1: Build
 # Usiamo l'immagine ufficiale di Go per compilare
 # --------------------------------------------------------
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Installiamo git (spesso serve per scaricare dipendenze)
 RUN apk add --no-cache git
