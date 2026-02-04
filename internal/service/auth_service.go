@@ -5,18 +5,17 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"go-auth-core/internal/conf"
+	"go-auth-core/internal/domain"
+	"go-auth-core/internal/repository"
+	"go-auth-core/pkg/email"
+	"go-auth-core/pkg/logger"
 	"math/big"
 	"net/http"
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-
-	"go-auth-core/internal/conf"
-	"go-auth-core/internal/domain"
-	"go-auth-core/internal/repository"
-	"go-auth-core/pkg/email"
-	"go-auth-core/pkg/logger"
 )
 
 // AuthService manages authentication logic regarding WebAuthn and Passkeys.
@@ -83,7 +82,7 @@ func (s *AuthService) RegisterBegin(ctx context.Context, email string) (*protoco
 			return nil, false, fmt.Errorf("failed to store otp: %w", err)
 		}
 
-		// Send Email (Now Synchronous)
+		// Send Email Synchronously
 		if err := s.emailSender.SendOTP(email, otp); err != nil {
 			logger.Error("failed to send otp email", err)
 			return nil, false, fmt.Errorf("failed to send otp email")
@@ -92,12 +91,13 @@ func (s *AuthService) RegisterBegin(ctx context.Context, email string) (*protoco
 		return nil, true, nil // Returns true indicating OTP is required
 	}
 
-	// 3. If user doesn't exist, create a temporary user object (NOT saved to DB yet)
-	// We defer creation to RegisterFinish to avoid orphan users if registration is abandoned.
-	user = &domain.User{
+	// 3. If user doesn't exist, create a new user temporary handle in-memory
+	// We DO NOT save to DB yet to avoid orphan users.
+	newUser := &domain.User{
 		Email:          email,
-		WebAuthnHandle: email, // In a real app complexity, might use UUID
+		WebAuthnHandle: email, // Using email as handle for simplicity
 	}
+	user = newUser
 
 	options, err := s.generateRegistrationOptions(ctx, user)
 	return options, false, err
@@ -105,40 +105,36 @@ func (s *AuthService) RegisterBegin(ctx context.Context, email string) (*protoco
 
 // VerifyOTP checks the provided OTP and if valid, returns the WebAuthn registration options.
 func (s *AuthService) VerifyOTP(ctx context.Context, email, otp string) (*protocol.CredentialCreation, error) {
-	// 1. Rate Limiting Check
-	attemptsKey := fmt.Sprintf("otp_attempts:%s", email)
-	attempts, err := s.redisRepo.Incr(ctx, attemptsKey) // Increments and returns new value
+	// Rate Limiting
+	limitKey := fmt.Sprintf("otp:attempts:%s", email)
+	attempts, err := s.redisRepo.Incr(ctx, limitKey)
 	if err != nil {
 		return nil, fmt.Errorf("redis error: %w", err)
 	}
-
-	// Set expiration for the counter (window of 10 minutes)
 	if attempts == 1 {
-		_ = s.redisRepo.Expire(ctx, attemptsKey, 10*time.Minute)
+		_ = s.redisRepo.Expire(ctx, limitKey, 10*time.Minute)
 	}
-
 	if attempts > 5 {
-		// Invalidate the OTP to force a new flow/wait
-		otpKey := fmt.Sprintf("otp:reg:%s", email)
-		_ = s.redisRepo.Delete(ctx, otpKey)
-		return nil, fmt.Errorf("too many attempts, request a new OTP")
+		return nil, fmt.Errorf("too many attempts, try again later")
 	}
 
-	// 2. Verify OTP
 	otpKey := fmt.Sprintf("otp:reg:%s", email)
 	storedOTP, err := s.redisRepo.Get(ctx, otpKey)
 	if err != nil {
 		return nil, fmt.Errorf("otp expired or invalid")
 	}
 
+	// If OTP matches, we can clear the rate limit or leave it?
+	// Usually better to leave it to prevent brute force on multiple valid OTPs if that was a thing,
+	// but here we just clear the OTP itself.
 	if storedOTP != otp {
 		return nil, fmt.Errorf("invalid otp")
 	}
 
 	// Consume OTP
 	_ = s.redisRepo.Delete(ctx, otpKey)
-	// Also clear attempts on success
-	_ = s.redisRepo.Delete(ctx, attemptsKey)
+	// Optionally clear attempts on success
+	_ = s.redisRepo.Delete(ctx, limitKey)
 
 	user, err := s.userRepo.FindByEmail(email)
 	if err != nil || user == nil {
@@ -182,37 +178,39 @@ func (s *AuthService) generateRegistrationOptions(ctx context.Context, user *dom
 	return options, nil
 }
 
-// generateOTP creates a random 6-digit string using crypto/rand
+// generateOTP creates a random 6-digit string
 func (s *AuthService) generateOTP() string {
-	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	n, err := rand.Int(rand.Reader, big.NewInt(900000))
 	if err != nil {
-		// Fallback to time-based if crypto fails (highly unlikely)
-		// but safer to return something than crash or return empty
-		return fmt.Sprintf("%06d", time.Now().UnixNano()%1000000)
+		return "000000"
 	}
-	return fmt.Sprintf("%06d", n.Int64())
+	return fmt.Sprintf("%06d", n.Int64()+100000)
 }
 
 // RegisterFinish completes the registration flow.
 // It verifies the authenticator's response and saves the new credential to the DB.
 func (s *AuthService) RegisterFinish(ctx context.Context, email string, req *http.Request) error {
-	// 1. Check if user exists
+	// Check if user exists in DB
 	user, err := s.userRepo.FindByEmail(email)
+	var isNewUser bool
+
 	if err != nil {
 		return fmt.Errorf("db error: %w", err)
 	}
 
-	var isNewUser bool
 	if user == nil {
+		// New User Case: Create ephemeral user for verification
 		isNewUser = true
-		// Reconstruct user object for verification and eventual creation
 		user = &domain.User{
 			Email:          email,
 			WebAuthnHandle: email,
 		}
+	} else {
+		isNewUser = false
 	}
 
 	// Retrieve session data
+	// Note: We use the handle to find the session. For new users, handle=email.
 	sessionKey := fmt.Sprintf("webauthn:reg:%s", user.WebAuthnHandle)
 	sessionData, err := s.loadSession(ctx, sessionKey)
 	if err != nil {
@@ -225,11 +223,9 @@ func (s *AuthService) RegisterFinish(ctx context.Context, email string, req *htt
 		return fmt.Errorf("verification failed: %w", err)
 	}
 
-	// Prepare passkey record
-	newPasskey := &domain.Passkey{
-		// UserID will be set automatically by GORM if we are creating the user,
-		// otherwise we need to set it manually if it's an existing user.
-		Name:           "Generic Passkey", // Default name, user can rename later
+	// Create passkey object
+	newPasskey := domain.Passkey{
+		Name:           "Generic Passkey", // Default name
 		CredentialID:   credential.ID,
 		PublicKey:      credential.PublicKey,
 		SignCount:      credential.Authenticator.SignCount,
@@ -238,15 +234,16 @@ func (s *AuthService) RegisterFinish(ctx context.Context, email string, req *htt
 	}
 
 	if isNewUser {
-		// Create User AND Passkey transactionally
-		user.Passkeys = []domain.Passkey{*newPasskey}
+		// Create User AND Passkey transactionally (or via Association)
+		// By creating the user with Passkeys populated, GORM handles it.
+		user.Passkeys = []domain.Passkey{newPasskey}
 		if err := s.userRepo.Create(user); err != nil {
 			return fmt.Errorf("failed to create user and passkey: %w", err)
 		}
 	} else {
-		// Append passkey to existing user
+		// Existing User: Add Passkey
 		newPasskey.UserID = user.ID
-		if err := s.passkeyRepo.Create(newPasskey); err != nil {
+		if err := s.passkeyRepo.Create(&newPasskey); err != nil {
 			return fmt.Errorf("failed to save passkey: %w", err)
 		}
 	}

@@ -101,16 +101,16 @@ func LoadConfig() *Config {
 		LogFormat: getEnv("LOG_FORMAT", "console"),
 	}
 
-	// Critical Config Validation for Production
+	// Fail-Fast validation for production
 	if cfg.Env == "production" {
-		if cfg.JWTSecret == "change-me-in-production" {
-			log.Fatal("❌ FATAL: JWT_SECRET must be set to a secure value in production!")
+		if cfg.JWTSecret == "change-me-in-production" || cfg.JWTSecret == "" {
+			log.Fatal("CRITICAL: JWT_SECRET is not set or is using default value in production!")
 		}
 		if cfg.DBPassword == "" {
-			log.Fatal("❌ FATAL: DB_PASSWORD must be set in production!")
+			log.Fatal("CRITICAL: DB_PASSWORD is required in production!")
 		}
 		if cfg.RedisPassword == "" {
-			log.Fatal("❌ FATAL: REDIS_PASSWORD must be set in production!")
+			log.Fatal("CRITICAL: REDIS_PASSWORD is required in production!")
 		}
 	}
 

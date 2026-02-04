@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"go-auth-core/pkg/jwt"
 	"net/http"
 	"strings"
@@ -53,7 +54,7 @@ func JWTMiddleware(jwtSecret string) gin.HandlerFunc {
 		if err != nil {
 			// Distinguish between expired and invalid/malformed token
 			// Allows frontend to handle cases differently
-			if err == jwt.ErrExpiredToken {
+			if errors.Is(err, jwt.ErrExpiredToken) {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 					"error": "Token expired",
 					"code":  "TOKEN_EXPIRED",
