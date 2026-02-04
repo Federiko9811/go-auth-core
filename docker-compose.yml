@@ -29,9 +29,9 @@ services:
     ports:
       - "${APP_PORT:-8080}:8080"
     depends_on:
-      db:
+      go-auth-core-db:
         condition: service_healthy
-      redis:
+      go-auth-core-redis:
         condition: service_healthy
 
   # Database Service - internal only (no port exposed)
