@@ -1,11 +1,11 @@
 .git
 .env
 .env.example
-*.md
-docs/
-.idea/
-.vscode/
 bin/
 tmp/
-coverage/
-*.log
+*.md
+docker-compose.yml
+docker-compose.dev.yml
+Makefile
+
+coverage.out
