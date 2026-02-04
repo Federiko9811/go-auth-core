@@ -95,7 +95,7 @@ func main() {
 	logger.Info("✅ Services initialized")
 
 	// 7. Initialize Handlers
-	authHandler := handlers.NewAuthHandler(authService, userRepo, cfg)
+	authHandler := handlers.NewAuthHandler(authService, userRepo, redisRepo, cfg)
 	passkeyHandler := handlers.NewPasskeyHandler(passkeyRepo)
 	healthHandler := handlers.NewHealthHandler(db, rdb)
 

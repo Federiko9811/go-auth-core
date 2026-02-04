@@ -8,6 +8,8 @@ import (
 	"go-auth-core/pkg/jwt"
 	"go-auth-core/pkg/logger"
 	"net/http"
+	"regexp"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,19 +18,23 @@ import (
 type AuthHandler struct {
 	authService *service.AuthService
 	userRepo    *repository.UserRepository
+	redisRepo   *repository.RedisRepository
 	cfg         *conf.Config
 }
 
 // NewAuthHandler is the constructor for AuthHandler.
-func NewAuthHandler(authService *service.AuthService, userRepo *repository.UserRepository, cfg *conf.Config) *AuthHandler {
+func NewAuthHandler(authService *service.AuthService, userRepo *repository.UserRepository, redisRepo *repository.RedisRepository, cfg *conf.Config) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		userRepo:    userRepo,
+		redisRepo:   redisRepo,
 		cfg:         cfg,
 	}
 }
 
 // --- REGISTRATION ---
+
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 // RegisterBegin godoc
 // @Summary      Start Passkey Registration
@@ -47,6 +53,12 @@ func (h *AuthHandler) RegisterBegin(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
+		return
+	}
+
+	// Double check with regex for strictness
+	if !emailRegex.MatchString(req.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
@@ -124,6 +136,11 @@ func (h *AuthHandler) RegisterFinish(c *gin.Context) {
 		return
 	}
 
+	if !emailRegex.MatchString(email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
+		return
+	}
+
 	err := h.authService.RegisterFinish(c.Request.Context(), email, c.Request)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Registration failed: " + err.Error()})
@@ -186,6 +203,11 @@ func (h *AuthHandler) LoginFinish(c *gin.Context) {
 	email := c.Query("email")
 	if email == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email query parameter is required"})
+		return
+	}
+
+	if !emailRegex.MatchString(email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
@@ -276,6 +298,14 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
+	// Check Blacklist
+	blacklistKey := "blacklist:" + refreshTokenStr
+	if _, err := h.redisRepo.Get(c.Request.Context(), blacklistKey); err == nil {
+		h.clearAuthCookies(c)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token revoked"})
+		return
+	}
+
 	// Validate the refresh token
 	claims, err := jwt.ValidateRefreshToken(refreshTokenStr, h.cfg.JWTSecret)
 	if err != nil {
@@ -357,6 +387,19 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Header       200 {string} Set-Cookie "refresh_token=; Path=/auth; Max-Age=0; HttpOnly"
 // @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
+	// Blacklist logic
+	refreshToken, _ := c.Cookie("refresh_token")
+	if refreshToken != "" {
+		claims, err := jwt.ValidateRefreshToken(refreshToken, h.cfg.JWTSecret)
+		if err == nil {
+			// Blacklist until expiration
+			ttl := time.Until(claims.ExpiresAt.Time)
+			if ttl > 0 {
+				_ = h.redisRepo.Set(c.Request.Context(), "blacklist:"+refreshToken, "1", ttl)
+			}
+		}
+	}
+
 	h.clearAuthCookies(c)
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

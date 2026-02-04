@@ -36,3 +36,13 @@ func (r *RedisRepository) Delete(ctx context.Context, key string) error {
 func (r *RedisRepository) Client() *redis.Client {
 	return r.client
 }
+
+// Incr increments the integer value of a key by one.
+func (r *RedisRepository) Incr(ctx context.Context, key string) (int64, error) {
+	return r.client.Incr(ctx, key).Result()
+}
+
+// Expire sets a timeout on key.
+func (r *RedisRepository) Expire(ctx context.Context, key string, expiration time.Duration) error {
+	return r.client.Expire(ctx, key, expiration).Err()
+}

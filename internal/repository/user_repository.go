@@ -66,7 +66,7 @@ func (r *UserRepository) FindByWebAuthnHandle(handle string) (*domain.User, erro
 // FindByID searches for a user by primary ID.
 func (r *UserRepository) FindByID(id uint) (*domain.User, error) {
 	var user domain.User
-	result := r.db.First(&user, id)
+	result := r.db.Preload("Passkeys").First(&user, id)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
