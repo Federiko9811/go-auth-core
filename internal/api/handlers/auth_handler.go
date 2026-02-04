@@ -317,7 +317,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	// Retrieve the user from the database to get updated data
 	user, err := h.userRepo.FindByID(claims.UserID)
-	if err != nil {
+	if err != nil || user == nil {
 		h.clearAuthCookies(c)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 		return
